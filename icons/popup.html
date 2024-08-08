@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PropWise</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>PropWise</header>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search for a player...">
+  </div>
+
+  <div class="how-to-use">
+    <h2>Instructions</h2>
+    <div class="icon-info">
+      <div class="icon-description">
+        <img src="icons/icon48.png" alt="Advanced Stats">
+        <p>Click to view season averages</p>
+      </div>
+      <div class="icon-description">
+        <img src="icons/live_stats_icon.png" alt="Live Stats">
+        <p>Click to view last game's stats</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div id="statsContainer"></div>
+
+  <div id="seasonAvgModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div id="seasonAvgContent"></div>
+    </div>
+  </div>
+
+  <div id="lastGameStatsModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div id="lastGameStatsContent"></div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
