@@ -2,12 +2,11 @@
   "manifest_version": 3,
   "name": "PropWise",
   "version": "1.0",
-  "description": "Access key player statistics for the regular season and playoffs. Quickly evaluate performance targets.",
-  "permissions": [
-  ],
+  "description": "Access key player statistics for the regular season and last games. Quickly evaluate performance targets.",
+  "permissions": [],
   "host_permissions": [
-    "https://api.prizepicks.com/*",
-    "https://www.nbaapi.com/*"
+  "https://api.prizepicks.com/*",
+    "https://statsapi.mlb.com/*"
   ],
   "background": {
     "service_worker": "background.js"

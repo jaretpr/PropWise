@@ -2,9 +2,9 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("PropWise Stats Extension Installed");
 });
 
-async function fetchNBAStats() {
+async function fetchMLBStats() {
   try {
-    const response = await fetch('https://api.prizepicks.com/projections', {
+    const response = await fetch('https://statsapi.mlb.com/api/v1/schedule/games/?sportId=1&date=2024-06-20', {
       method: 'GET',
       mode: 'cors',
       headers: {
@@ -12,174 +12,75 @@ async function fetchNBAStats() {
       }
     });
     const data = await response.json();
-    return data;
+    const gameData = data.dates[0].games;
+
+    const playerStatsPromises = gameData.map(game => fetchPlayerStats(game.gamePk));
+    const players = await Promise.all(playerStatsPromises);
+
+    return { players: players.flat() };
   } catch (error) {
-    console.error('Error fetching NBA stats:', error);
+    console.error('Error fetching MLB stats:', error);
   }
 }
 
-async function fetchPlayerAdvancedStats(name, season) {
-  const query = `
-    query GetPlayerByNameAndSeason($name: String!, $season: Int!) {
-      playerPerGame(name: $name, season: $season) {
-        playerName
-        team
-        points
-        assists
-        blocks
-        fieldGoals
-        fieldAttempts
-        fieldPercent
-        games
-        gamesStarted
-        offensiveRb
-        steals
-        threePercent
-        threeFg
-        threeAttempts
-        age
-        defensiveRb
-        effectFgPercent
-        ft
-        ftAttempts
-        ftPercent
-        minutesPg
-        personalFouls
-        position
-        totalRb
-        turnovers
-        twoAttempts
-        twoPercent
-        twoFg
-      }
-    }
-  `.trim();
-
-  const variables = {
-    name: name,
-    season: season
-  };
-
+async function fetchPlayerStats(gameId) {
   try {
-    const requestBody = JSON.stringify({
-      query: query,
-      variables: variables,
-      operationName: "GetPlayerByNameAndSeason"
-    });
-
-    const response = await fetch('https://www.nbaapi.com/graphql/', {
-      method: 'POST',
+    const response = await fetch(`https://statsapi.mlb.com/api/v1/game/${gameId}/boxscore`, {
+      method: 'GET',
+      mode: 'cors',
       headers: {
-        'Content-Type': 'application/json',
-      },
-      body: requestBody,
+        'Content-Type': 'application/json'
+      }
     });
+    const data = await response.json();
+    const players = [];
 
-    const result = await response.json();
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors);
-      result.errors.forEach(error => console.error(error.message));
-      return [];
+    // Process home team players
+    for (const playerId in data.teams.home.players) {
+      const player = data.teams.home.players[playerId];
+      players.push(processPlayerStats(player, data.teams.home.team));
     }
 
-    return result.data.playerPerGame || [];
+    // Process away team players
+    for (const playerId in data.teams.away.players) {
+      const player = data.teams.away.players[playerId];
+      players.push(processPlayerStats(player, data.teams.away.team));
+    }
+
+    return players;
   } catch (error) {
-    console.error('Error fetching player advanced stats:', error);
+    console.error('Error fetching player stats:', error);
     return [];
   }
 }
 
-async function fetchPlayoffStats(name, season) {
-  const query = `
-    query GetPlayerPlayoffStats($name: String!, $season: Int!) {
-      playerTotalsPlayoffs(name: $name, season: $season) {
-        id
-        playerName
-        position
-        age
-        games
-        gamesStarted
-        minutesPg
-        fieldGoals
-        fieldAttempts
-        fieldPercent
-        threeFg
-        threeAttempts
-        threePercent
-        twoFg
-        twoAttempts
-        twoPercent
-        effectFgPercent
-        ft
-        ftAttempts
-        ftPercent
-        offensiveRb
-        defensiveRb
-        totalRb
-        assists
-        steals
-        blocks
-        turnovers
-        personalFouls
-        points
-        team
-        season
-        playerId
-      }
-    }
-  `.trim();
-
-  const variables = {
-    name: name,
-    season: season
+function processPlayerStats(player, team) {
+  const seasonAvg = `${player.seasonStats.avg.toFixed(3)} AVG, ${player.seasonStats.hr} HR, ${player.seasonStats.rbi} RBI`;
+  const lastGameStats = `${player.stats.hits} H, ${player.stats.homeRuns} HR, ${player.stats.rbi} RBI`;
+  return {
+    fullName: player.person.fullName,
+    imageUrl: `https://mlb.com/images/${player.person.id}.jpg`,
+    team: team.name,
+    primaryPosition: player.position.abbreviation,
+    seasonAvg,
+    lastGameStats,
+    gameTime: player.gameTime
   };
-
-  try {
-    const requestBody = JSON.stringify({
-      query: query,
-      variables: variables,
-      operationName: "GetPlayerPlayoffStats"
-    });
-
-    const response = await fetch('https://www.nbaapi.com/graphql/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: requestBody,
-    });
-
-    const result = await response.json();
-
-    if (result.errors) {
-      console.error('GraphQL errors:', result.errors);
-      result.errors.forEach(error => console.error(error.message));
-      return [];
-    }
-
-    return result.data.playerTotalsPlayoffs || [];
-  } catch (error) {
-    console.error('Error fetching playoff stats:', error);
-    return [];
-  }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'fetchStats') {
-    fetchNBAStats().then(stats => {
+  if (message.action === 'fetchMLBStats') {
+    fetchMLBStats().then(stats => {
       sendResponse({ stats });
     });
     return true; // Will respond asynchronously
-  } else if (message.action === 'fetchPlayerAdvancedStats') {
-    const { name, season } = message;
-    fetchPlayerAdvancedStats(name, season).then(stats => {
+  } else if (message.action === 'fetchPlayerSeasonAvg') {
+    fetchPlayerSeasonAvg(message.name).then(stats => {
       sendResponse({ stats });
     });
     return true; // Will respond asynchronously
-  } else if (message.action === 'fetchPlayoffStats') {
-    const { name, season } = message;
-    fetchPlayoffStats(name, season).then(stats => {
+  } else if (message.action === 'fetchPlayerLastGameStats') {
+    fetchPlayerLastGameStats(message.name).then(stats => {
       sendResponse({ stats });
     });
     return true; // Will respond asynchronously
