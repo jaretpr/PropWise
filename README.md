@@ -3,13 +3,12 @@
 ![PropWise Logo](icons/icon128.png)
 
 ## Description
-PropWise is a Chrome extension that provides access to key player statistics for the regular season and playoffs. This extension helps users quickly evaluate performance targets using data from PrizePicks and the NBA API.
+PropWise is a Chrome extension that provides access to key player statistics for the MLB season. This extension helps users quickly evaluate performance targets using data from PrizePicks and the MLB API.
 
 ## Features
-- View player statistics for the current day.
+- View player statistics for the last game played.
 - Search for players and filter results.
-- Access advanced player statistics.
-- Access playoff statistics.
+- Access advanced player statistics for the season.
 
 ## Prerequisites
 - Google Chrome browser
@@ -21,7 +20,7 @@ PropWise is a Chrome extension that provides access to key player statistics for
 2. **Permissions:**
    - The extension requires access to the following hosts:
      - `https://api.prizepicks.com/*`
-     - `https://www.nbaapi.com/*`
+     - `https://statsapi.mlb.com/*`
 
 ## Usage Instructions
 1. **Open the Extension:**
@@ -30,11 +29,8 @@ PropWise is a Chrome extension that provides access to key player statistics for
 2. **Search for Players:**
    - Use the search bar to type in the name of the player you are looking for.
 
-3. **View Player Statistics:**
-   - The extension will display a list of players with their statistics for the current day.
+3. **View Last Game's Player Statistics:**
+   - Click on the last game's stats icon to view detailed player statistics the last game played.
 
-4. **View Advanced Stats:**
-   - Click on the advanced stats icon to view detailed player statistics for the season.
-
-5. **View Playoff Stats:**
-   - Click on the live stats icon to view detailed player statistics for the playoffs.
+4. **View Advanced Season Stats:**
+   - Click on the season stats icon to view detailed player statistics for the season.
