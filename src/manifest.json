@@ -1,11 +1,13 @@
 {
+"update_url": "https://clients2.google.com/service/update2/crx",
+
   "manifest_version": 3,
   "name": "PropWise",
-  "version": "1.0",
-  "description": "Access key player statistics for the regular season and last games. Quickly evaluate performance targets.",
+  "version": "1.1",
+  "description": "Access advanced player stats and last game's stats. Perfect for informed decision-making.",
   "permissions": [],
   "host_permissions": [
-  "https://api.prizepicks.com/*",
+    "https://api.prizepicks.com/*",
     "https://statsapi.mlb.com/*"
   ],
   "background": {

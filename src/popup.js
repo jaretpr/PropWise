@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  chrome.runtime.sendMessage({ action: 'fetchMLBStats' }, response => {
+  chrome.runtime.sendMessage({ action: 'fetchStats' }, response => {
     if (response && response.stats) {
       displayMLBStats(response.stats);
     }
@@ -18,35 +18,12 @@ function displayMLBStats(stats) {
   const statsContainer = document.getElementById('statsContainer');
   statsContainer.innerHTML = ''; // Clear previous content
 
-  const players = stats.players;
-  const today = new Date().toISOString().split('T')[0]; // Get today's date in 'YYYY-MM-DD' format
+  if (stats.length === 0) {
+    statsContainer.innerHTML = '<p class="no-players-found">No players found</p>';
+    return;
+  }
 
-  allPlayers = players.map(player => {
-    const displayName = player.fullName;
-    const imageUrl = player.imageUrl;
-    const team = player.team;
-    const position = player.primaryPosition;
-    const seasonAvg = player.seasonAvg;
-    const lastGameStats = player.lastGameStats;
-    const gameTime = player.gameTime ? new Date(player.gameTime).toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    }) : 'N/A';
-
-    return {
-      displayName,
-      imageUrl,
-      team,
-      position,
-      seasonAvg,
-      lastGameStats,
-      gameTime
-    };
-  });
+  allPlayers = stats;
 
   renderPlayers(allPlayers);
 }
@@ -66,30 +43,27 @@ function renderPlayers(players) {
     playerElement.innerHTML = `
       <div class="player-header">
         <img src="icons/icon48.png" alt="Stats" class="stat-button">
-        <img src="${player.imageUrl}" alt="${player.displayName}" class="player-image">
+        <img src="${player.imageUrl}" alt="${player.name}" class="player-image">
         <img src="icons/live_stats_icon.png" alt="Live Stats" class="live-stats-button">
       </div>
       <div class="player-info">
-        <h2>${player.displayName}</h2>
+        <h2>${player.name}</h2>
         <p>${player.team} - ${player.position}</p>
-        <p>${player.gameTime}</p>
+        <p>${new Date(player.startTime).toLocaleString()}</p>
+        <p class="match-up">vs. ${player.description}</p>
         <div class="stat-line">
-          <p class="line-score">${player.seasonAvg}</p>
-          <p class="stat-type">Season Avg</p>
-        </div>
-        <div class="stat-line">
-          <p class="line-score">${player.lastGameStats}</p>
-          <p class="stat-type">Last Game</p>
+          <p class="line-score">${player.lineScore}</p>
+          <p class="stat-type">${player.statType}</p>
         </div>
       </div>
     `;
 
     playerElement.querySelector('.stat-button').addEventListener('click', () => {
-      fetchAndDisplaySeasonAvg(player.displayName);
+      fetchAndDisplayAdvancedStats(player.name);
     });
 
     playerElement.querySelector('.live-stats-button').addEventListener('click', () => {
-      fetchAndDisplayLastGameStats(player.displayName);
+      fetchAndDisplayLiveGameStats(player.name);
     });
 
     statsContainer.appendChild(playerElement);
@@ -97,87 +71,174 @@ function renderPlayers(players) {
 }
 
 function filterPlayers(query) {
-  const filteredPlayers = allPlayers.filter(player => player.displayName.toLowerCase().includes(query));
+  const filteredPlayers = allPlayers.filter(player => player.name.toLowerCase().includes(query));
   renderPlayers(filteredPlayers);
 }
 
-function fetchAndDisplaySeasonAvg(name) {
-  chrome.runtime.sendMessage({ action: 'fetchPlayerSeasonAvg', name }, response => {
+function formatStatKey(key) {
+  const statKeyMapping = {
+	note: 'Note',
+    summary: 'Summary',
+    gamesPlayed: 'Games Played',
+    flyOuts: 'Fly Outs',
+    groundOuts: 'Ground Outs',
+    airOuts: 'Air Outs',
+    runs: 'Runs',
+    doubles: 'Doubles',
+    triples: 'Triples',
+    homeRuns: 'Home Runs',
+    strikeOuts: 'Strike Outs',
+    baseOnBalls: 'Walks',
+    intentionalWalks: 'Intentional Walks',
+    hits: 'Hits',
+    hitByPitch: 'Hit By Pitch',
+    avg: 'Average',
+    atBats: 'At Bats',
+    obp: 'On-Base Percentage',
+    slg: 'Slugging Percentage',
+    ops: 'On-base Plus Slugging',
+    caughtStealing: 'Caught Stealing',
+    stolenBases: 'Stolen Bases',
+    stolenBasePercentage: 'Stolen Base Percentage',
+    groundIntoDoublePlay: 'Ground Into Double Play',
+    numberOfPitches: 'Number of Pitches',
+    plateAppearances: 'Plate Appearances',
+    totalBases: 'Total Bases',
+    rbi: 'Runs Batted In',
+    leftOnBase: 'Left On Base',
+    sacBunts: 'Sacrifice Bunts',
+    sacFlies: 'Sacrifice Flies',
+    babip: 'Batting Average on Balls In Play',
+    groundOutsToAirouts: 'Ground Outs to Air Outs Ratio',
+    catchersInterference: 'Catcher’s Interference',
+    atBatsPerHomeRun: 'At Bats Per Home Run',
+    groundIntoTriplePlay: 'Ground Into Triple Play',
+    pickoffs: 'Pickoffs',
+    popOuts: 'Pop Outs',
+    lineOuts: 'Line Outs',
+    assists: 'Assists',
+    putOuts: 'Put Outs',
+    errors: 'Errors',
+    chances: 'Chances',
+    fielding: 'Fielding Percentage',
+    passedBall: 'Passed Ball',
+    gamesStarted: 'Games Started',
+    games: 'Games',
+    doublePlays: 'Double Plays',
+    triplePlays: 'Triple Plays',
+    throwingErrors: 'Throwing Errors',
+    rangeFactorPerGame: 'Range Factor Per Game',
+    rangeFactorPer9Inn: 'Range Factor Per 9 Innings',
+    innings: 'Innings',
+  };
+
+  return statKeyMapping[key] || key;
+}
+
+function fetchAndDisplayAdvancedStats(playerName) {
+  chrome.runtime.sendMessage({ action: 'fetchSeasonStats' }, response => {
     if (response && response.stats) {
-      displaySeasonAvg(response.stats);
+      const playerStats = response.stats.find(player => player.name === playerName);
+      displayAdvancedStats(playerStats);
     }
   });
 }
 
-function fetchAndDisplayLastGameStats(name) {
-  chrome.runtime.sendMessage({ action: 'fetchPlayerLastGameStats', name }, response => {
-    if (response && response.stats) {
-      displayLastGameStats(response.stats);
-    }
-  });
-}
-
-function displaySeasonAvg(stats) {
-  const modal = document.getElementById('seasonAvgModal');
-  const modalContent = document.getElementById('seasonAvgContent');
+function displayAdvancedStats(player) {
+  const modal = document.getElementById('advancedStatsModal');
+  const modalContent = document.getElementById('advancedStatsContent');
   modalContent.innerHTML = ''; // Clear previous content
 
-  if (stats) {
-    const playerContent = `
-      <div class="player-stats">
-        <h2>${stats.playerName} - ${stats.team}</h2>
-        <p>Average: ${stats.average}</p>
-        <p>Home Runs: ${stats.homeRuns}</p>
-        <p>RBIs: ${stats.RBIs}</p>
-        <p>Hits: ${stats.hits}</p>
-        <p>Runs: ${stats.runs}</p>
-      </div>
-    `;
-    modalContent.innerHTML += playerContent;
-    modal.style.display = 'block';
+  if (player) {
+    const battingStatsAvailable = Object.keys(player.battingStats).length > 0;
+    const pitchingStatsAvailable = Object.keys(player.pitchingStats).length > 0;
+    const fieldingStatsAvailable = Object.keys(player.fieldingStats).length > 0;
+
+    const allStatsUnavailable = !battingStatsAvailable && !pitchingStatsAvailable && !fieldingStatsAvailable;
+
+    if (allStatsUnavailable) {
+      modalContent.innerHTML = '<p>Season stats not available.</p>';
+    } else {
+      const playerContent = `
+        <div class="player-stats">
+          <h2>${player.name} - ${player.position}</h2>
+          <p class="stats-heading">Season Batting Stats:</p>
+          ${battingStatsAvailable ? Object.entries(player.battingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Season batting stats not available.</p>'}
+          <p class="stats-heading">Season Pitching Stats:</p>
+          ${pitchingStatsAvailable ? Object.entries(player.pitchingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Season pitching stats not available.</p>'}
+          <p class="stats-heading">Season Fielding Stats:</p>
+          ${fieldingStatsAvailable ? Object.entries(player.fieldingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Season fielding stats not available.</p>'}
+        </div>
+      `;
+      modalContent.innerHTML += playerContent;
+    }
   } else {
-    modalContent.innerHTML += '<p>No season average stats available.</p>';
-    modal.style.display = 'block';
+    modalContent.innerHTML = '<p>Season stats not available.</p>';
   }
 
+  modal.style.display = 'block';
+
   const span = document.getElementsByClassName('close')[0];
-  span.onclick = function() {
+  span.onclick = function () {
     modal.style.display = 'none';
   }
-  window.onclick = function(event) {
+
+  window.onclick = function (event) {
     if (event.target == modal) {
       modal.style.display = 'none';
     }
   }
 }
 
-function displayLastGameStats(stats) {
-  const modal = document.getElementById('lastGameStatsModal');
-  const modalContent = document.getElementById('lastGameStatsContent');
+function fetchAndDisplayLiveGameStats(playerName) {
+  chrome.runtime.sendMessage({ action: 'fetchLiveGameStats' }, response => {
+    if (response && response.stats) {
+      const playerStats = response.stats.find(player => player.name === playerName);
+      displayLiveGameStats(playerStats);
+    }
+  });
+}
+
+function displayLiveGameStats(player) {
+  const modal = document.getElementById('liveStatsModal');
+  const modalContent = document.getElementById('liveStatsContent');
   modalContent.innerHTML = ''; // Clear previous content
 
-  if (stats) {
-    const playerContent = `
-      <div class="player-stats">
-        <h2>${stats.playerName} - ${stats.team}</h2>
-        <p>Hits: ${stats.hits}</p>
-        <p>Home Runs: ${stats.homeRuns}</p>
-        <p>RBIs: ${stats.RBIs}</p>
-        <p>Runs: ${stats.runs}</p>
-      </div>
-    `;
-    modalContent.innerHTML += playerContent;
-    modal.style.display = 'block';
+  if (player) {
+    const battingStatsAvailable = Object.keys(player.battingStats).length > 0;
+    const pitchingStatsAvailable = Object.keys(player.pitchingStats).length > 0;
+    const fieldingStatsAvailable = Object.keys(player.fieldingStats).length > 0;
+
+    const allStatsUnavailable = !battingStatsAvailable && !pitchingStatsAvailable && !fieldingStatsAvailable;
+
+    if (allStatsUnavailable) {
+      modalContent.innerHTML = '<p>Last game\'s stats not available.</p>';
+    } else {
+      const playerContent = `
+        <div class="player-stats">
+          <h2>${player.name} - ${player.position}</h2>
+          <p class="stats-heading">Last Game's Batting Stats:</p>
+          ${battingStatsAvailable ? Object.entries(player.battingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Last game\'s batting stats not available.</p>'}
+          <p class="stats-heading">Last Game's Pitching Stats:</p>
+          ${pitchingStatsAvailable ? Object.entries(player.pitchingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Last game\'s pitching stats not available.</p>'}
+          <p class="stats-heading">Last Game's Fielding Stats:</p>
+          ${fieldingStatsAvailable ? Object.entries(player.fieldingStats).map(([key, value]) => `<p>${formatStatKey(key)}: ${value}</p>`).join('') : '<p>Last game\'s fielding stats not available.</p>'}
+        </div>
+      `;
+      modalContent.innerHTML += playerContent;
+    }
   } else {
-    modalContent.innerHTML += '<p>No last game stats available.</p>';
-    modal.style.display = 'block';
+    modalContent.innerHTML = '<p>Last game\'s stats not available.</p>';
   }
 
+  modal.style.display = 'block';
+
   const span = document.getElementsByClassName('close')[1];
-  span.onclick = function() {
+  span.onclick = function () {
     modal.style.display = 'none';
   }
-  window.onclick = function(event) {
+
+  window.onclick = function (event) {
     if (event.target == modal) {
       modal.style.display = 'none';
     }

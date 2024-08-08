@@ -57,6 +57,7 @@ header {
   align-items: center;
   font-size: 0.9em;
   color: #ffffff;
+  margin-bottom: 10px;
 }
 
 .icon-description img {
@@ -65,10 +66,11 @@ header {
   margin-bottom: 5px;
 }
 
-/* Divider line styles */
 .divider {
+  width: 80%;
   height: 1px;
   background-color: #ffffff;
+  margin: 20px auto;
 }
 
 #statsContainer {
@@ -91,7 +93,6 @@ header {
   justify-content: center;
 }
 
-/* Player card styles */
 .player-card {
   background-color: #242635;
   border-radius: 10px;
@@ -137,6 +138,11 @@ header {
   font-size: 0.9em;
 }
 
+.match-up {
+  font-size: 0.9em;
+  color: #AAAAAA;
+}
+
 .stat-line {
   display: flex;
   justify-content: space-between;
@@ -148,18 +154,17 @@ header {
 }
 
 .line-score {
-  font-size: 1.2em !important;
+  font-size: 1.2em;
   font-weight: bold;
 }
 
 .stat-type {
-  font-size: 0.9em !important;
+  font-size: 0.9em;
   text-transform: uppercase;
   color: #AAAAAA;
   padding-top: 1.5px;
 }
 
-/* Button styles */
 .stat-button,
 .live-stats-button {
   width: 25px;
@@ -167,7 +172,6 @@ header {
   cursor: pointer;
 }
 
-/* Modal styles */
 .modal {
   display: none;
   position: fixed;
@@ -208,6 +212,12 @@ header {
 
 .modal-content p strong {
   color: #4b6cb7;
+}
+
+.stats-heading {
+  font-weight: bold;
+  border-bottom: 1px solid #4b6cb7;
+  margin-top: 20px;
 }
 
 .close {
