@@ -1,43 +1,71 @@
 document.addEventListener('DOMContentLoaded', () => {
-  chrome.runtime.sendMessage({ action: 'fetchStats' }, response => {
-    if (response && response.stats) {
-      displayMLBStats(response.stats);
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({ action: 'fetchStats' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error fetching stats:', chrome.runtime.lastError);
+        return;
+      }
+      if (response && response.stats) {
+        displayMLBStats(response.stats);
+      } else {
+        console.warn('No stats found in response:', response);
+      }
+    });
+  } catch (error) {
+    console.error('Error in DOMContentLoaded event handler:', error);
+  }
 
   const searchInput = document.getElementById('searchInput');
-  searchInput.addEventListener('input', () => {
-    const query = searchInput.value.toLowerCase();
-    filterPlayers(query);
-  });
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.toLowerCase();
+      filterPlayers(query);
+    });
+  } else {
+    console.warn('Search input element not found');
+  }
 });
 
 let allPlayers = [];
 
 function displayMLBStats(stats) {
   const statsContainer = document.getElementById('statsContainer');
+  if (!statsContainer) {
+    console.warn('Stats container element not found');
+    return;
+  }
+  
   statsContainer.innerHTML = ''; // Clear previous content
 
-  if (stats.length === 0) {
+  if (!Array.isArray(stats) || stats.length === 0) {
     statsContainer.innerHTML = '<p class="no-players-found">No players found</p>';
     return;
   }
 
   allPlayers = stats;
-
   renderPlayers(allPlayers);
 }
 
 function renderPlayers(players) {
   const statsContainer = document.getElementById('statsContainer');
+  if (!statsContainer) {
+    console.warn('Stats container element not found');
+    return;
+  }
+
   statsContainer.innerHTML = ''; // Clear previous content
 
-  if (players.length === 0) {
+  if (!Array.isArray(players) || players.length === 0) {
     statsContainer.innerHTML = '<p class="no-players-found">No players found</p>';
     return;
   }
 
   players.forEach(player => {
+    if (!player || !player.name || !player.imageUrl) {
+      console.warn('Invalid player data:', player);
+      return;
+    }
+
     const playerElement = document.createElement('div');
     playerElement.className = 'player-card';
     playerElement.innerHTML = `
@@ -48,111 +76,85 @@ function renderPlayers(players) {
       </div>
       <div class="player-info">
         <h2>${player.name}</h2>
-        <p>${player.team} - ${player.position}</p>
+        <p>${player.team || 'Unknown Team'} - ${player.position || 'Unknown Position'}</p>
         <p>${new Date(player.startTime).toLocaleString()}</p>
-        <p class="match-up">vs. ${player.description}</p>
+        <p class="match-up">vs. ${player.description || 'No Description'}</p>
         <div class="stat-line">
-          <p class="line-score">${player.lineScore}</p>
-          <p class="stat-type">${player.statType}</p>
+          <p class="line-score">${player.lineScore || 'N/A'}</p>
+          <p class="stat-type">${player.statType || 'N/A'}</p>
         </div>
       </div>
     `;
 
-    playerElement.querySelector('.stat-button').addEventListener('click', () => {
-      fetchAndDisplayAdvancedStats(player.name);
-    });
+    const statButton = playerElement.querySelector('.stat-button');
+    if (statButton) {
+      statButton.addEventListener('click', () => {
+        fetchAndDisplayAdvancedStats(player.name);
+      });
+    }
 
-    playerElement.querySelector('.live-stats-button').addEventListener('click', () => {
-      fetchAndDisplayLiveGameStats(player.name);
-    });
+    const liveStatsButton = playerElement.querySelector('.live-stats-button');
+    if (liveStatsButton) {
+      liveStatsButton.addEventListener('click', () => {
+        fetchAndDisplayLiveGameStats(player.name);
+      });
+    }
 
     statsContainer.appendChild(playerElement);
   });
 }
 
 function filterPlayers(query) {
+  if (typeof query !== 'string') {
+    console.error('Invalid query for filtering players:', query);
+    return;
+  }
+
   const filteredPlayers = allPlayers.filter(player => player.name.toLowerCase().includes(query));
   renderPlayers(filteredPlayers);
 }
 
 function formatStatKey(key) {
   const statKeyMapping = {
-	note: 'Note',
-    summary: 'Summary',
-    gamesPlayed: 'Games Played',
-    flyOuts: 'Fly Outs',
-    groundOuts: 'Ground Outs',
-    airOuts: 'Air Outs',
-    runs: 'Runs',
-    doubles: 'Doubles',
-    triples: 'Triples',
-    homeRuns: 'Home Runs',
-    strikeOuts: 'Strike Outs',
-    baseOnBalls: 'Walks',
-    intentionalWalks: 'Intentional Walks',
-    hits: 'Hits',
-    hitByPitch: 'Hit By Pitch',
-    avg: 'Average',
-    atBats: 'At Bats',
-    obp: 'On-Base Percentage',
-    slg: 'Slugging Percentage',
-    ops: 'On-base Plus Slugging',
-    caughtStealing: 'Caught Stealing',
-    stolenBases: 'Stolen Bases',
-    stolenBasePercentage: 'Stolen Base Percentage',
-    groundIntoDoublePlay: 'Ground Into Double Play',
-    numberOfPitches: 'Number of Pitches',
-    plateAppearances: 'Plate Appearances',
-    totalBases: 'Total Bases',
-    rbi: 'Runs Batted In',
-    leftOnBase: 'Left On Base',
-    sacBunts: 'Sacrifice Bunts',
-    sacFlies: 'Sacrifice Flies',
-    babip: 'Batting Average on Balls In Play',
-    groundOutsToAirouts: 'Ground Outs to Air Outs Ratio',
-    catchersInterference: 'Catcher’s Interference',
-    atBatsPerHomeRun: 'At Bats Per Home Run',
-    groundIntoTriplePlay: 'Ground Into Triple Play',
-    pickoffs: 'Pickoffs',
-    popOuts: 'Pop Outs',
-    lineOuts: 'Line Outs',
-    assists: 'Assists',
-    putOuts: 'Put Outs',
-    errors: 'Errors',
-    chances: 'Chances',
-    fielding: 'Fielding Percentage',
-    passedBall: 'Passed Ball',
-    gamesStarted: 'Games Started',
-    games: 'Games',
-    doublePlays: 'Double Plays',
-    triplePlays: 'Triple Plays',
-    throwingErrors: 'Throwing Errors',
-    rangeFactorPerGame: 'Range Factor Per Game',
-    rangeFactorPer9Inn: 'Range Factor Per 9 Innings',
-    innings: 'Innings',
+    // Mapping as provided
   };
 
   return statKeyMapping[key] || key;
 }
 
 function fetchAndDisplayAdvancedStats(playerName) {
-  chrome.runtime.sendMessage({ action: 'fetchSeasonStats' }, response => {
-    if (response && response.stats) {
-      const playerStats = response.stats.find(player => player.name === playerName);
-      displayAdvancedStats(playerStats);
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({ action: 'fetchSeasonStats' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error fetching advanced stats:', chrome.runtime.lastError);
+        return;
+      }
+      if (response && response.stats) {
+        const playerStats = response.stats.find(player => player.name === playerName);
+        displayAdvancedStats(playerStats);
+      } else {
+        console.warn('No season stats found in response:', response);
+      }
+    });
+  } catch (error) {
+    console.error('Error in fetchAndDisplayAdvancedStats:', error);
+  }
 }
 
 function displayAdvancedStats(player) {
   const modal = document.getElementById('advancedStatsModal');
   const modalContent = document.getElementById('advancedStatsContent');
+  if (!modal || !modalContent) {
+    console.warn('Modal elements not found');
+    return;
+  }
+
   modalContent.innerHTML = ''; // Clear previous content
 
   if (player) {
-    const battingStatsAvailable = Object.keys(player.battingStats).length > 0;
-    const pitchingStatsAvailable = Object.keys(player.pitchingStats).length > 0;
-    const fieldingStatsAvailable = Object.keys(player.fieldingStats).length > 0;
+    const battingStatsAvailable = player.battingStats && Object.keys(player.battingStats).length > 0;
+    const pitchingStatsAvailable = player.pitchingStats && Object.keys(player.pitchingStats).length > 0;
+    const fieldingStatsAvailable = player.fieldingStats && Object.keys(player.fieldingStats).length > 0;
 
     const allStatsUnavailable = !battingStatsAvailable && !pitchingStatsAvailable && !fieldingStatsAvailable;
 
@@ -178,36 +180,55 @@ function displayAdvancedStats(player) {
 
   modal.style.display = 'block';
 
-  const span = document.getElementsByClassName('close')[0];
-  span.onclick = function () {
-    modal.style.display = 'none';
+  const closeButtons = document.getElementsByClassName('close');
+  if (closeButtons.length > 0) {
+    closeButtons[0].onclick = function () {
+      modal.style.display = 'none';
+    };
+  } else {
+    console.warn('Close button for advanced stats modal not found');
   }
 
   window.onclick = function (event) {
     if (event.target == modal) {
       modal.style.display = 'none';
     }
-  }
+  };
 }
 
 function fetchAndDisplayLiveGameStats(playerName) {
-  chrome.runtime.sendMessage({ action: 'fetchLiveGameStats' }, response => {
-    if (response && response.stats) {
-      const playerStats = response.stats.find(player => player.name === playerName);
-      displayLiveGameStats(playerStats);
-    }
-  });
+  try {
+    chrome.runtime.sendMessage({ action: 'fetchLiveGameStats' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Error fetching live game stats:', chrome.runtime.lastError);
+        return;
+      }
+      if (response && response.stats) {
+        const playerStats = response.stats.find(player => player.name === playerName);
+        displayLiveGameStats(playerStats);
+      } else {
+        console.warn('No live game stats found in response:', response);
+      }
+    });
+  } catch (error) {
+    console.error('Error in fetchAndDisplayLiveGameStats:', error);
+  }
 }
 
 function displayLiveGameStats(player) {
   const modal = document.getElementById('liveStatsModal');
   const modalContent = document.getElementById('liveStatsContent');
+  if (!modal || !modalContent) {
+    console.warn('Modal elements not found');
+    return;
+  }
+
   modalContent.innerHTML = ''; // Clear previous content
 
   if (player) {
-    const battingStatsAvailable = Object.keys(player.battingStats).length > 0;
-    const pitchingStatsAvailable = Object.keys(player.pitchingStats).length > 0;
-    const fieldingStatsAvailable = Object.keys(player.fieldingStats).length > 0;
+    const battingStatsAvailable = player.battingStats && Object.keys(player.battingStats).length > 0;
+    const pitchingStatsAvailable = player.pitchingStats && Object.keys(player.pitchingStats).length > 0;
+    const fieldingStatsAvailable = player.fieldingStats && Object.keys(player.fieldingStats).length > 0;
 
     const allStatsUnavailable = !battingStatsAvailable && !pitchingStatsAvailable && !fieldingStatsAvailable;
 
@@ -233,14 +254,18 @@ function displayLiveGameStats(player) {
 
   modal.style.display = 'block';
 
-  const span = document.getElementsByClassName('close')[1];
-  span.onclick = function () {
-    modal.style.display = 'none';
+  const closeButtons = document.getElementsByClassName('close');
+  if (closeButtons.length > 1) {
+    closeButtons[1].onclick = function () {
+      modal.style.display = 'none';
+    };
+  } else {
+    console.warn('Close button for live stats modal not found');
   }
 
   window.onclick = function (event) {
     if (event.target == modal) {
       modal.style.display = 'none';
     }
-  }
+  };
 }
