@@ -34,6 +34,10 @@ PropWise is a Chrome extension that provides access to key player statistics for
 
 4. **View Advanced Season Stats:**
    - Click on the season stats icon to view detailed player statistics for the season.
+
+## Screenshots
+
+![PropWise_Interface](icons/PropWise_Interface.png)
   
 ## License
 
