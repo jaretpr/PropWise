@@ -2,45 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PropWise</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="styles.css">
-  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap" rel="stylesheet">
 </head>
 <body>
-  <header>PropWise</header>
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Search for a player...">
-  </div>
-
-  <div class="how-to-use">
-    <h2>Instructions</h2>
-    <div class="icon-info">
-      <div class="icon-description">
-        <img src="icons/icon48.png" alt="Advanced Stats">
-        <p>Click to view advanced stats</p>
+  <div class="app-container">
+    <header>
+      <div class="header-logo">
+        <img src="icons/logo.png" alt="PropWise Logo" class="logo-img">
+        <span><span class="logo-accent">Prop</span>Wise</span>
       </div>
-      <div class="icon-description">
-        <img src="icons/live_stats_icon.png" alt="Live Stats">
-        <p>Click to view last game's stats</p>
+      <div class="header-status">
+        <span class="pulse-indicator"></span> Live Data
+      </div>
+    </header>
+    
+    <div class="sport-tabs">
+      <button class="tab-button active" data-sport="mlb">
+        <span class="tab-label">MLB</span>
+      </button>
+      <button class="tab-button" data-sport="nba">
+        <span class="tab-label">NBA</span>
+      </button>
+      <button class="tab-button" data-sport="nfl">
+        <span class="tab-label">NFL</span>
+      </button>
+    </div>
+
+    <div class="search-bar">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search player by name...">
+      </div>
+    </div>
+
+    <div class="instructions-card">
+      <div class="instruction-item">
+        <div class="icon-wrapper advanced-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </div>
+        <span>Season Stats</span>
+      </div>
+      <div class="instruction-item">
+        <div class="icon-wrapper live-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+          </svg>
+        </div>
+        <span>Last Game</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="statsContainer">
+      <div class="loader-container">
+        <div class="spinner"></div>
+        <p>Fetching lines from PrizePicks...</p>
       </div>
     </div>
   </div>
 
-  <div class="divider"></div>
-
-  <div id="statsContainer"></div>
-
+  <!-- Advanced Stats Modal -->
   <div id="advancedStatsModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
+    <div class="modal-content glassmorphism">
+      <span class="close" title="Close modal">&times;</span>
       <div id="advancedStatsContent"></div>
     </div>
   </div>
 
+  <!-- Live Stats Modal -->
   <div id="liveStatsModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
+    <div class="modal-content glassmorphism">
+      <span class="close" title="Close modal">&times;</span>
       <div id="liveStatsContent"></div>
     </div>
   </div>
