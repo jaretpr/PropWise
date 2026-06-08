@@ -3,7 +3,7 @@
 ![PropWise Logo](icons/icon128.png)
 
 ## Description
-PropWise is a Chrome extension that provides access to key player statistics for the MLB season. This extension helps users quickly evaluate performance targets using data from PrizePicks and the MLB API.
+PropWise is a Chrome extension that provides access to key player statistics for the MLB, NBA, and NFL season. This extension helps users quickly evaluate performance targets.
 
 ## Features
 - View player statistics for the last game played.
