@@ -37,7 +37,7 @@ PropWise is a Chrome extension that provides access to key player statistics for
 
 ## Screenshots
 
-![PropWise_Interface](icons/PropWise_Interface.png)
+![PropWise_Interface](icons/PropWise NBA.png)
   
 ## License
 
