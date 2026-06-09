@@ -18,7 +18,16 @@
         <span class="pulse-indicator"></span> Live Data
       </div>
     </header>
-    
+
+    <div class="view-tabs" role="tablist" aria-label="PropWise views">
+      <button class="view-button active" data-view="players" role="tab" aria-selected="true">
+        Players &amp; Lines
+      </button>
+      <button class="view-button" data-view="picks" role="tab" aria-selected="false">
+        Best Picks
+      </button>
+    </div>
+
     <div class="sport-tabs">
       <button class="tab-button active" data-sport="mlb">
         <span class="tab-label">MLB</span>
@@ -31,45 +40,56 @@
       </button>
     </div>
 
-    <div class="search-bar">
-      <div class="search-wrapper">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-        </svg>
-        <input type="text" id="searchInput" placeholder="Search player by name...">
+    <div id="playersControls">
+      <div class="search-bar">
+        <div class="search-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search player by name...">
+        </div>
+      </div>
+
+      <div class="instructions-card">
+        <div class="instruction-item">
+          <div class="icon-wrapper advanced-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+          </div>
+          <span>Season Stats</span>
+        </div>
+        <div class="instruction-item">
+          <div class="icon-wrapper live-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+          </div>
+          <span>Last Game</span>
+        </div>
       </div>
     </div>
 
-    <div class="instructions-card">
-      <div class="instruction-item">
-        <div class="icon-wrapper advanced-wrapper">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-        </div>
-        <span>Season Stats</span>
+    <div id="picksIntro" class="picks-intro hidden">
+      <div>
+        <p class="eyebrow">V2 model-ranked board</p>
+        <h1 id="picksTitle">Top MLB Picks</h1>
+        <p id="picksSubtitle">Up to 5 qualified picks using form, volatility, role, and matchup context.</p>
       </div>
-      <div class="instruction-item">
-        <div class="icon-wrapper live-wrapper">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-          </svg>
-        </div>
-        <span>Last Game</span>
-      </div>
+      <span class="max-picks-badge">MAX 5</span>
     </div>
 
-    <div class="divider"></div>
-
-    <div id="statsContainer">
+    <div id="statsContainer" class="players-view">
       <div class="loader-container">
         <div class="spinner"></div>
         <p>Fetching lines from PrizePicks...</p>
       </div>
     </div>
+
+    <p id="responsibleNote" class="responsible-note hidden">V2 scores rank model strength; they are not win probabilities. Lines can move.</p>
   </div>
 
   <!-- Advanced Stats Modal -->

@@ -1,17 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
-  let currentSport = 'mlb';
-  
-  // Load initial MLB stats
-  loadSportStats(currentSport);
-  
-  // Setup tab event listeners
+  loadCurrentView();
+
+  const viewButtons = document.querySelectorAll('.view-button');
+  viewButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      viewButtons.forEach(viewButton => {
+        const isActive = viewButton === button;
+        viewButton.classList.toggle('active', isActive);
+        viewButton.setAttribute('aria-selected', String(isActive));
+      });
+      currentView = button.dataset.view;
+      updateViewVisibility();
+      loadCurrentView();
+    });
+  });
+
   const tabButtons = document.querySelectorAll('.tab-button');
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
       tabButtons.forEach(tab => tab.classList.remove('active'));
       button.classList.add('active');
       currentSport = button.dataset.sport;
-      loadSportStats(currentSport);
+      document.getElementById('searchInput').value = '';
+      loadCurrentView();
     });
   });
 
@@ -20,22 +31,51 @@ document.addEventListener('DOMContentLoaded', () => {
   searchInput.addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-      const query = searchInput.value.toLowerCase();
-      filterPlayers(query);
+      filterPlayers(searchInput.value.toLowerCase());
     }, 150);
   });
 });
 
-let allPlayers = [];
 let currentSport = 'mlb';
+let currentView = 'players';
+let allPlayers = [];
+const sportNames = {
+  mlb: 'MLB',
+  nba: 'NBA',
+  nfl: 'NFL'
+};
+
+function updateViewVisibility() {
+  const isPicksView = currentView === 'picks';
+  document.getElementById('playersControls').classList.toggle('hidden', isPicksView);
+  document.getElementById('picksIntro').classList.toggle('hidden', !isPicksView);
+  document.getElementById('responsibleNote').classList.toggle('hidden', !isPicksView);
+
+  const statsContainer = document.getElementById('statsContainer');
+  statsContainer.classList.toggle('players-view', !isPicksView);
+  statsContainer.classList.toggle('picks-view', isPicksView);
+}
+
+function loadCurrentView() {
+  updateViewVisibility();
+  if (currentView === 'picks') {
+    loadSportPicks(currentSport);
+  } else {
+    loadSportStats(currentSport);
+  }
+}
 
 function loadSportStats(sport) {
   currentSport = sport;
+  const requestedSport = sport;
   const statsContainer = document.getElementById('statsContainer');
   statsContainer.innerHTML = '<div class="loader-container"><div class="spinner"></div><p>Fetching lines from PrizePicks...</p></div>';
 
-  chrome.runtime.sendMessage({ action: 'fetchStats', sport: sport }, response => {
-    if (response && response.stats) {
+  chrome.runtime.sendMessage({ action: 'fetchStats', sport }, response => {
+    if (currentView !== 'players' || currentSport !== requestedSport) return;
+    if (chrome.runtime.lastError) {
+      statsContainer.innerHTML = '<p class="no-players-found">Failed to fetch data</p>';
+    } else if (response && Array.isArray(response.stats)) {
       displayStats(response.stats, sport);
     } else {
       statsContainer.innerHTML = '<p class="no-players-found">Failed to fetch data</p>';
@@ -46,6 +86,49 @@ function loadSportStats(sport) {
 function displayStats(stats, sport) {
   allPlayers = stats;
   renderPlayers(allPlayers, sport);
+}
+
+function loadSportPicks(sport) {
+  currentSport = sport;
+  const requestedSport = sport;
+  const statsContainer = document.getElementById('statsContainer');
+  const picksTitle = document.getElementById('picksTitle');
+  const picksSubtitle = document.getElementById('picksSubtitle');
+  picksTitle.textContent = `Top ${sportNames[sport]} Picks`;
+  picksSubtitle.textContent = sport === 'nfl'
+    ? 'Up to 5 season picks using production, availability, age, and current role.'
+    : 'Up to 5 picks using form, volatility, role, and matchup context.';
+  statsContainer.innerHTML = '<div class="loader-container"><div class="spinner"></div><p>Ranking the strongest live lines...</p><span>Checking performance history and line quality</span></div>';
+
+  chrome.runtime.sendMessage({ action: 'fetchTopPicks', sport }, response => {
+    if (currentView !== 'picks' || currentSport !== requestedSport) return;
+    if (chrome.runtime.lastError) {
+      renderPicksError();
+    } else if (response && Array.isArray(response.picks)) {
+      renderPicks(response.picks, sport, response);
+    } else {
+      renderPicksError();
+    }
+  });
+}
+
+function renderPicksError() {
+  const statsContainer = document.getElementById('statsContainer');
+  statsContainer.innerHTML = `
+    <div class="empty-picks">
+      <h2>Unable to rank the board</h2>
+      <p>Live lines or performance data could not be loaded. Try reopening PropWise in a moment.</p>
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function formatPosition(position) {
@@ -133,6 +216,110 @@ function formatStatTypeLabel(label) {
     .replace(/\bBlocks\b/i, 'BLK');
 }
 
+function renderPicks(picks, sport = 'mlb', metadata = {}) {
+  const statsContainer = document.getElementById('statsContainer');
+  statsContainer.innerHTML = '';
+
+  if (picks.length === 0) {
+    statsContainer.innerHTML = `
+      <div class="empty-picks">
+        <h2>No qualified ${sportNames[sport]} picks</h2>
+        <p>Nothing on the live board currently clears the recent-form and line-value thresholds.</p>
+      </div>
+    `;
+    return;
+  }
+
+  picks.forEach((player, index) => {
+    const pickCard = document.createElement('article');
+    pickCard.className = `pick-card ${sport}-pick`;
+    const position = escapeHtml(formatPosition(player.position));
+    const playerName = escapeHtml(player.name);
+    const team = escapeHtml(player.team || player.teamName || 'N/A');
+    const description = escapeHtml(player.description || 'Matchup TBD');
+    const statType = escapeHtml(formatStatTypeLabel(player.statType));
+    const lineScore = escapeHtml(player.lineScore);
+    const direction = player.direction === 'less' ? 'Less' : 'More';
+    const startTime = player.startTime ? new Date(player.startTime).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    }) : 'TBD';
+    const hitRateMetric = player.hitRate === null
+      ? `<span><strong>${escapeHtml(player.sampleSize)}</strong> games in latest sample</span>`
+      : `<span><strong>${escapeHtml(player.hitRate)}%</strong> recent hit rate</span>`;
+
+    pickCard.innerHTML = `
+      <div class="pick-topline">
+        <span class="pick-rank">#${index + 1} PICK</span>
+        <span class="confidence-pill">${escapeHtml(player.modelVersion || 'V2')} ${escapeHtml(player.confidence)}/100</span>
+      </div>
+      <div class="pick-main">
+        <img src="${escapeHtml(player.imageUrl || 'icons/icon48.png')}" alt="${playerName}" class="pick-player-image">
+        <div class="pick-player-copy">
+          <h2>${playerName}</h2>
+          <p>${team} <span class="dot-separator">&middot;</span> ${position}</p>
+          <span>${description} <span class="dot-separator">&middot;</span> ${escapeHtml(startTime)}</span>
+        </div>
+        <div class="line-call line-${player.direction}">
+          <span>${direction}</span>
+          <strong>${lineScore}</strong>
+          <small>${statType}</small>
+        </div>
+      </div>
+      <div class="why-pick">
+        <span class="why-label">Why this pick</span>
+        <p>${escapeHtml(player.reason)}</p>
+      </div>
+      <div class="pick-footer">
+        <div class="pick-metrics">
+          ${hitRateMetric}
+          <span><strong>${escapeHtml(player.modelProjection || player.recentAverage)}</strong> V2 projection</span>
+          <span><strong>${escapeHtml(player.consistency)}</strong>/100 consistency</span>
+        </div>
+        <div class="pick-actions">
+          <button class="pick-action stat-btn" title="View season stats">
+            Season
+          </button>
+          <button class="pick-action live-btn" title="View last game stats">
+            Last game
+          </button>
+        </div>
+      </div>
+    `;
+
+    const playerImage = pickCard.querySelector('.pick-player-image');
+    playerImage.addEventListener('error', () => {
+      playerImage.src = 'icons/icon48.png';
+    }, { once: true });
+
+    pickCard.querySelector('.stat-btn').addEventListener('click', (event) => {
+      const button = event.currentTarget;
+      button.classList.add('loading');
+      fetchAndDisplayAdvancedStats(player, sport, () => button.classList.remove('loading'));
+    });
+
+    pickCard.querySelector('.live-btn').addEventListener('click', (event) => {
+      const button = event.currentTarget;
+      button.classList.add('loading');
+      fetchAndDisplayLiveGameStats(player, sport, () => button.classList.remove('loading'));
+    });
+
+    statsContainer.appendChild(pickCard);
+  });
+
+  if (metadata.generatedAt) {
+    const updated = document.createElement('p');
+    updated.className = 'board-updated';
+    const coverage = metadata.screenedCount
+      ? ` | screened ${metadata.screenedCount} lines across ${metadata.profiledPlayers || 0} players`
+      : '';
+    updated.textContent = `${metadata.modelVersion || 'V2'} ranked ${new Date(metadata.generatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}${coverage}`;
+    statsContainer.appendChild(updated);
+  }
+}
+
 function renderPlayers(players, sport = 'mlb') {
   const statsContainer = document.getElementById('statsContainer');
   statsContainer.innerHTML = '';
@@ -145,8 +332,10 @@ function renderPlayers(players, sport = 'mlb') {
   players.forEach(player => {
     const playerCard = document.createElement('div');
     playerCard.className = `player-card ${sport}-card`;
-    const position = formatPosition(player.position);
-    
+    const position = escapeHtml(formatPosition(player.position));
+    const playerName = escapeHtml(player.name);
+    const team = escapeHtml(player.team || player.teamName || 'N/A');
+    const matchup = escapeHtml(player.description || player.matchup || 'vs. TBD');
     const startTime = player.startTime ? new Date(player.startTime).toLocaleString(undefined, {
       month: 'short',
       day: 'numeric',
@@ -156,19 +345,19 @@ function renderPlayers(players, sport = 'mlb') {
 
     let projectionsHtml = '<div class="projections-list">';
     if (player.projections && player.projections.length > 0) {
-      player.projections.forEach(proj => {
+      player.projections.forEach(projection => {
         projectionsHtml += `
           <div class="projection-row">
-            <span class="proj-type">${formatStatTypeLabel(proj.statType)}</span>
-            <span class="proj-line">${proj.lineScore}</span>
+            <span class="proj-type">${escapeHtml(formatStatTypeLabel(projection.statType))}</span>
+            <span class="proj-line">${escapeHtml(projection.lineScore)}</span>
           </div>
         `;
       });
     } else {
       projectionsHtml += `
         <div class="projection-row">
-          <span class="proj-type">${formatStatTypeLabel(player.statType)}</span>
-          <span class="proj-line">${player.lineScore || 'N/A'}</span>
+          <span class="proj-type">${escapeHtml(formatStatTypeLabel(player.statType))}</span>
+          <span class="proj-line">${escapeHtml(player.lineScore || 'N/A')}</span>
         </div>
       `;
     }
@@ -184,7 +373,7 @@ function renderPlayers(players, sport = 'mlb') {
           </svg>
         </button>
         <div class="player-img-wrapper">
-          <img src="${player.imageUrl || 'icons/icon48.png'}" alt="${player.name}" class="player-image">
+          <img src="${escapeHtml(player.imageUrl || 'icons/icon48.png')}" alt="${playerName}" class="player-image">
         </div>
         <button class="action-btn live-btn" title="Last Game Stats">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="icon-svg">
@@ -193,11 +382,11 @@ function renderPlayers(players, sport = 'mlb') {
         </button>
       </div>
       <div class="player-info">
-        <h2>${player.name}</h2>
-        <p class="player-details">${player.team || player.teamName || 'N/A'} - ${position}</p>
+        <h2>${playerName}</h2>
+        <p class="player-details">${team} - ${position}</p>
         <div class="divider-sub"></div>
-        <p class="match-up">${player.description || player.matchup || 'vs. TBD'}</p>
-        <p class="game-time">${startTime}</p>
+        <p class="match-up">${matchup}</p>
+        <p class="game-time">${escapeHtml(startTime)}</p>
         <div class="divider-sub"></div>
         ${projectionsHtml}
       </div>
@@ -208,17 +397,16 @@ function renderPlayers(players, sport = 'mlb') {
       playerImage.src = 'icons/icon48.png';
     }, { once: true });
 
-    // Listeners with loaders
-    playerCard.querySelector('.stat-btn').addEventListener('click', (e) => {
-      const btn = e.currentTarget;
-      btn.classList.add('loading');
-      fetchAndDisplayAdvancedStats(player, sport, () => btn.classList.remove('loading'));
+    playerCard.querySelector('.stat-btn').addEventListener('click', event => {
+      const button = event.currentTarget;
+      button.classList.add('loading');
+      fetchAndDisplayAdvancedStats(player, sport, () => button.classList.remove('loading'));
     });
 
-    playerCard.querySelector('.live-btn').addEventListener('click', (e) => {
-      const btn = e.currentTarget;
-      btn.classList.add('loading');
-      fetchAndDisplayLiveGameStats(player, sport, () => btn.classList.remove('loading'));
+    playerCard.querySelector('.live-btn').addEventListener('click', event => {
+      const button = event.currentTarget;
+      button.classList.add('loading');
+      fetchAndDisplayLiveGameStats(player, sport, () => button.classList.remove('loading'));
     });
 
     statsContainer.appendChild(playerCard);
@@ -226,6 +414,7 @@ function renderPlayers(players, sport = 'mlb') {
 }
 
 function filterPlayers(query) {
+  if (currentView !== 'players') return;
   const filteredPlayers = allPlayers.filter(player => player.name.toLowerCase().includes(query));
   renderPlayers(filteredPlayers, currentSport);
 }

@@ -64,8 +64,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -118,13 +118,45 @@ header {
   100% { transform: scale(0.9); opacity: 0.6; }
 }
 
+/* Primary View Navigation */
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.view-button {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72em;
+  font-weight: 700;
+  padding: 7px 10px;
+  transition: all 0.2s ease;
+}
+
+.view-button:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.view-button.active {
+  color: var(--accent-color);
+  background: rgba(255, 179, 0, 0.08);
+  border-color: rgba(255, 179, 0, 0.28);
+}
+
 /* Navigation Tabs */
 .sport-tabs {
   display: flex;
   background: rgba(0, 0, 0, 0.25);
   padding: 4px;
   border-radius: 30px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-inset);
 }
@@ -138,7 +170,7 @@ header {
   border-radius: 26px;
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
-  font-size: 0.9em;
+  font-size: 0.82em;
   cursor: pointer;
   transition: all 0.25s ease;
   text-align: center;
@@ -153,6 +185,57 @@ header {
   background: var(--accent-gradient);
   color: #000;
   box-shadow: 0 4px 15px var(--accent-glow);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Ranked Picks Header */
+.picks-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 2px 4px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+}
+
+.picks-intro .eyebrow {
+  color: var(--accent-color);
+  font-size: 0.65em;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.picks-intro h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25em;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+.picks-intro #picksSubtitle {
+  color: var(--text-secondary);
+  font-size: 0.72em;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.max-picks-badge {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  padding: 5px 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65em;
+  font-weight: 800;
+  letter-spacing: 0.7px;
 }
 
 /* Search Bar */
@@ -202,7 +285,7 @@ header {
   border: 1px solid var(--border-subtle);
   padding: 12px;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .instruction-item {
@@ -237,18 +320,27 @@ header {
 
 /* Stats Container Grid */
 #statsContainer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
   flex: 1;
   overflow-y: auto;
-  padding: 10px 8px 15px 8px; /* Added top and side padding to prevent hover border cutoff */
+  padding: 10px 7px 15px;
   min-height: 0;
+}
+
+#statsContainer.players-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 15px;
+}
+
+#statsContainer.picks-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* Loader / Spinner */
 .loader-container {
-  grid-column: span 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -256,6 +348,16 @@ header {
   padding: 40px 0;
   gap: 12px;
   color: var(--text-secondary);
+}
+
+.players-view .loader-container,
+.players-view .no-players-found {
+  grid-column: span 2;
+}
+
+.loader-container span {
+  color: rgba(142, 155, 174, 0.7);
+  font-size: 0.72em;
 }
 
 .spinner {
@@ -272,11 +374,262 @@ header {
 }
 
 .no-players-found {
-  grid-column: span 2;
   text-align: center;
   color: var(--text-secondary);
   padding: 40px 0;
   font-size: 1.1em;
+}
+
+/* Ranked Pick Cards */
+.pick-card {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    var(--bg-color-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.pick-topline,
+.pick-main,
+.pick-footer,
+.pick-actions,
+.pick-metrics {
+  display: flex;
+  align-items: center;
+}
+
+.pick-topline {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pick-rank {
+  color: var(--accent-color);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.64em;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.confidence-pill {
+  color: #ffd577;
+  background: rgba(255, 179, 0, 0.08);
+  border: 1px solid rgba(255, 179, 0, 0.18);
+  border-radius: 20px;
+  padding: 4px 8px;
+  font-size: 0.62em;
+  font-weight: 700;
+}
+
+.pick-main {
+  gap: 10px;
+  min-width: 0;
+}
+
+.pick-player-image {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pick-player-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.pick-player-copy h2 {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1em;
+  font-weight: 750;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-player-copy p,
+.pick-player-copy > span {
+  display: block;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.67em;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot-separator {
+  color: rgba(255, 255, 255, 0.25);
+  padding: 0 2px;
+}
+
+.line-call {
+  width: 96px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  padding: 8px 7px;
+  text-align: center;
+  border: 1px solid;
+}
+
+.line-call span,
+.line-call small {
+  display: block;
+  text-transform: uppercase;
+}
+
+.line-call span {
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.line-call strong {
+  display: block;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25em;
+  line-height: 1.05;
+}
+
+.line-call small {
+  overflow: hidden;
+  font-size: 0.52em;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-more {
+  color: #5ee59a;
+  background: rgba(44, 194, 112, 0.08);
+  border-color: rgba(94, 229, 154, 0.22);
+}
+
+.line-less {
+  color: #ff8b82;
+  background: rgba(255, 107, 97, 0.08);
+  border-color: rgba(255, 139, 130, 0.22);
+}
+
+.why-pick {
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.035);
+  border-radius: 10px;
+  margin-top: 10px;
+  padding: 9px 10px;
+}
+
+.why-label {
+  color: var(--accent-color);
+  display: block;
+  font-size: 0.6em;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.why-pick p {
+  color: #c5ccd7;
+  font-size: 0.69em;
+  line-height: 1.45;
+}
+
+.pick-footer {
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+}
+
+.pick-metrics {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--text-secondary);
+  font-size: 0.62em;
+}
+
+.pick-metrics strong {
+  color: var(--text-primary);
+}
+
+.pick-actions {
+  gap: 5px;
+}
+
+.pick-action {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.61em;
+  font-weight: 700;
+  padding: 6px 8px;
+  transition: all 0.2s ease;
+}
+
+.pick-action:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 179, 0, 0.35);
+  background: rgba(255, 179, 0, 0.07);
+}
+
+.pick-action.loading {
+  color: var(--accent-color);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.empty-picks {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 30px;
+  text-align: center;
+}
+
+.empty-picks h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05em;
+  margin-bottom: 7px;
+}
+
+.empty-picks p {
+  color: var(--text-secondary);
+  font-size: 0.76em;
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.board-updated {
+  color: rgba(142, 155, 174, 0.65);
+  flex-shrink: 0;
+  font-size: 0.62em;
+  padding: 2px 0 0;
+  text-align: center;
+}
+
+.responsible-note {
+  color: rgba(142, 155, 174, 0.55);
+  font-size: 0.58em;
+  line-height: 1.35;
+  padding-top: 7px;
+  text-align: center;
 }
 
 /* Player Card Styling (Shortened Layout) */

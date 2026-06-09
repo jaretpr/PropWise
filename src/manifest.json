@@ -3,7 +3,7 @@
 
   "manifest_version": 3,
   "name": "PropWise",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Multi-sport prop betting assistant for MLB, NBA, and NFL. Access advanced player stats and projections for informed decision-making.",
   "permissions": [],
   "host_permissions": [
